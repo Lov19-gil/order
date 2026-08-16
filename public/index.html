@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>游戏预约系统</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">🎮</span>
+        <h1 id="brandTitle">游戏预约</h1>
+      </div>
+      <nav class="tabs">
+        <button class="tab active" data-mode="user">预约游戏</button>
+        <button class="tab" data-mode="admin">管理后台</button>
+      </nav>
+    </header>
+
+    <!-- ============ 用户预约视图 ============ -->
+    <main id="userView" class="view">
+      <section class="panel hero">
+        <div>
+          <h2>选个时间，一起开黑吧 🚀</h2>
+          <p>选择日期与时间段，填写信息即可预约。每个时间段只能预约一次，先到先得。</p>
+        </div>
+        <div class="legend">
+          <span class="lg lg-available">可预约</span>
+          <span class="lg lg-booked">已约满</span>
+          <span class="lg lg-blocked">不可约</span>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="date-row" id="dateRow"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3 id="slotDateTitle">时间段</h3>
+          <span class="hint" id="slotHint">点击可预约的时段进行预约</span>
+        </div>
+        <div class="slots" id="slotGrid"></div>
+      </section>
+    </main>
+
+    <!-- ============ 管理后台视图 ============ -->
+    <main id="adminView" class="view hidden">
+      <!-- PIN 解锁 -->
+      <section class="panel" id="adminLock">
+        <div class="lock-card">
+          <div class="lock-icon">🔒</div>
+          <h3>管理后台</h3>
+          <p>请输入管理 PIN 以管理时间段与预约</p>
+          <div class="pin-input">
+            <input type="password" id="pinInput" placeholder="管理 PIN" autocomplete="off">
+            <button class="btn primary" id="pinSubmit">进入</button>
+          </div>
+          <p class="err" id="pinErr"></p>
+        </div>
+      </section>
+
+      <!-- 管理内容 -->
+      <div id="adminContent" class="hidden">
+        <section class="panel hero">
+          <div>
+            <h2>管理后台</h2>
+            <p>锁定/解锁时间段，查看与取消预约。</p>
+          </div>
+          <button class="btn ghost" id="openSettings">⚙️ 设置</button>
+        </section>
+
+        <section class="panel">
+          <div class="date-row" id="adminDateRow"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h3 id="adminSlotTitle">时间段</h3>
+            <span class="hint">点击时间段进行管理</span>
+          </div>
+          <div class="slots" id="adminSlotGrid"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div id="modalRoot"></div>
+  <div id="toastRoot"></div>
+  <script src="/app.js"></script>
+</body>
+</html>

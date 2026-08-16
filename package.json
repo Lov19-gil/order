@@ -1,0 +1,12 @@
+{
+  "name": "game-booking",
+  "version": "1.0.0",
+  "description": "游戏预约系统 - 预约时间段一起打游戏",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
