@@ -72,15 +72,21 @@ app.get('/api/slots', (req, res) => {
   for (const b of store.bookings) {
     bookingMap[slotKey(b.date, b.start)] = b;
   }
+  const dayOpen = store.dayOpen[date]; // undefined 或当日开放的时段数组
   const nowTs = Date.now();
   const result = slots.map(s => {
     const k = slotKey(date, s.start);
-    let status = 'available';
-    if (blockedSet.has(k)) status = 'blocked';
-    else if (bookingMap[k]) status = 'booked';
-    // 已过去的时间段（按中国时间判断）
-    if (status === 'available' && chinaTimestamp(date, s.start) < nowTs) {
-      status = 'past';
+    let status;
+    if (blockedSet.has(k)) {
+      status = 'blocked';
+    } else if (bookingMap[k]) {
+      status = 'booked';
+    } else if (dayOpen && !dayOpen.includes(s.start)) {
+      status = 'closed'; // 当天不开放
+    } else if (chinaTimestamp(date, s.start) < nowTs) {
+      status = 'past'; // 已过去（按中国时间）
+    } else {
+      status = 'available';
     }
     return { start: s.start, end: s.end, status, booking: bookingMap[k] || null };
   });
@@ -99,6 +105,9 @@ app.post('/api/bookings', (req, res) => {
   if (!slot) return res.status(400).json({ error: '无效的时间段' });
 
   const k = slotKey(date, start);
+  if (store.dayOpen[date] && !store.dayOpen[date].includes(start)) {
+    return res.status(400).json({ error: '该时段当天不开放预约' });
+  }
   if (store.blocked.some(b => slotKey(b.date, b.start) === k)) {
     return res.status(409).json({ error: '该时间段已被锁定，不可预约' });
   }
@@ -139,6 +148,32 @@ function adminAuth(req, res, next) {
 // 验证 PIN
 app.get('/api/admin/verify', adminAuth, (req, res) => {
   res.json({ ok: true });
+});
+
+// 获取某天开放时段
+app.get('/api/admin/dayopen', adminAuth, (req, res) => {
+  const date = req.query.date;
+  if (!date) return res.status(400).json({ error: '缺少 date 参数' });
+  const store = getStore();
+  const configured = Object.prototype.hasOwnProperty.call(store.dayOpen, date);
+  res.json({ date, configured, starts: configured ? store.dayOpen[date] : null });
+});
+
+// 设置某天开放时段（starts 为 null 表示恢复全局默认）
+app.put('/api/admin/dayopen', adminAuth, (req, res) => {
+  const { date, starts } = req.body || {};
+  if (!date) return res.status(400).json({ error: '缺少日期' });
+  const store = getStore();
+  if (starts == null) {
+    delete store.dayOpen[date];
+  } else if (Array.isArray(starts)) {
+    const valid = new Set(generateSlots(store.settings).map(s => s.start));
+    store.dayOpen[date] = starts.filter(x => valid.has(x));
+  } else {
+    return res.status(400).json({ error: '参数错误' });
+  }
+  save();
+  res.json({ ok: true, configured: Object.prototype.hasOwnProperty.call(store.dayOpen, date), starts: store.dayOpen[date] || null });
 });
 
 // 锁定时间段

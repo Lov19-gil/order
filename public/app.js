@@ -92,6 +92,7 @@ function bindEvents() {
   document.getElementById('pinSubmit').addEventListener('click', adminLogin);
   document.getElementById('pinInput').addEventListener('keydown', e => { if (e.key === 'Enter') adminLogin(); });
   document.getElementById('openSettings').addEventListener('click', openSettingsModal);
+  document.getElementById('openDayOpen').addEventListener('click', openDayOpenModal);
 }
 
 function switchMode(mode) {
@@ -158,6 +159,7 @@ function renderUserSlots() {
     if (isMine) label = '⭐ 我的预约';
     else if (s.status === 'booked') label = '已约满';
     else if (s.status === 'blocked') label = '不可约';
+    else if (s.status === 'closed') label = '不开放';
     else if (s.status === 'past') label = '已过时';
     el.innerHTML = `<div class="time">${s.start}–${s.end}</div><div class="st">${label}</div>`;
     if (s.status === 'available') {
@@ -274,6 +276,7 @@ function renderAdminSlots() {
     let label = '空闲';
     if (s.status === 'booked') label = '已预约';
     else if (s.status === 'blocked') label = '已锁定';
+    else if (s.status === 'closed') label = '不开放';
     else if (s.status === 'past') label = '已过时';
     el.innerHTML = `<div class="time">${s.start}–${s.end}</div><div class="st">${label}</div>`;
     if (s.status === 'available') el.addEventListener('click', () => openBlockModal(s));
@@ -360,6 +363,72 @@ function openBookingDetailModal(slot) {
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// ---------- 管理端：每日开放时段 ----------
+async function openDayOpenModal() {
+  const date = state.selectedDate;
+  let cfg, slotsData;
+  try {
+    [cfg, slotsData] = await Promise.all([
+      api('/api/admin/dayopen?date=' + date),
+      api('/api/slots?date=' + date)
+    ]);
+  } catch (e) { return toast(e.message, 'err'); }
+
+  const slots = slotsData.slots;
+  const initial = new Set(cfg.configured ? cfg.starts : slots.map(s => s.start));
+
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+    <div class="modal-mask" onclick="if(event.target===this)closeModal()">
+      <div class="modal" style="max-width:520px">
+        <h3>当日开放时段</h3>
+        <div class="sub">${date} · 勾选该天可预约的时段，未勾选的将不开放</div>
+        <div class="dayopen-tools">
+          <button type="button" class="btn ghost" id="dayopenAll">全选</button>
+          <button type="button" class="btn ghost" id="dayopenNone">全不选</button>
+          <button type="button" class="btn ghost" id="dayopenReset">恢复默认(全部开放)</button>
+        </div>
+        <div class="dayopen-list">
+          ${slots.map(s => {
+            const tag = s.status === 'booked' ? '<em class="do-tag do-booked">已约</em>'
+              : s.status === 'blocked' ? '<em class="do-tag do-blocked">已锁定</em>' : '';
+            return `<label class="dayopen-item">
+              <input type="checkbox" value="${s.start}" ${initial.has(s.start) ? 'checked' : ''}>
+              <span class="do-time">${s.start}–${s.end}</span>${tag}
+            </label>`;
+          }).join('')}
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn ghost" onclick="closeModal()">取消</button>
+          <button type="button" class="btn primary" id="saveDayOpen">保存</button>
+        </div>
+      </div>
+    </div>`;
+
+  const boxes = () => [...root.querySelectorAll('.dayopen-list input[type=checkbox]')];
+  document.getElementById('dayopenAll').addEventListener('click', () => boxes().forEach(c => c.checked = true));
+  document.getElementById('dayopenNone').addEventListener('click', () => boxes().forEach(c => c.checked = false));
+  document.getElementById('dayopenReset').addEventListener('click', async () => {
+    try {
+      await api('/api/admin/dayopen', { method: 'PUT', body: JSON.stringify({ date, starts: null }) });
+      closeModal(); toast('已恢复默认（全部开放）', 'ok'); await loadAdminSlots();
+    } catch (e) { toast(e.message, 'err'); }
+  });
+
+  document.getElementById('saveDayOpen').addEventListener('click', async () => {
+    const btn = document.getElementById('saveDayOpen');
+    btn.disabled = true; btn.textContent = '保存中…';
+    try {
+      const starts = boxes().filter(c => c.checked).map(c => c.value);
+      await api('/api/admin/dayopen', { method: 'PUT', body: JSON.stringify({ date, starts }) });
+      closeModal(); toast('已保存当日开放时段', 'ok'); await loadAdminSlots();
+    } catch (e) {
+      toast(e.message, 'err');
+      btn.disabled = false; btn.textContent = '保存';
+    }
+  });
 }
 
 // ---------- 管理端：设置 ----------

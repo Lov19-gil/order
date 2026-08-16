@@ -15,7 +15,8 @@ const DEFAULTS = {
     games: ['英雄联盟', '王者荣耀', '原神', '和平精英', '永劫无间', 'CS2', '其他']
   },
   blocked: [],   // 被锁定的时间段 { date, start }
-  bookings: []   // 预约记录
+  bookings: [],  // 预约记录
+  dayOpen: {}    // 每日开放时段 { "YYYY-MM-DD": ["09:00", ...] }，未配置的日期按全局设置开放
 };
 
 let store = null;
@@ -32,6 +33,7 @@ function load() {
       store.settings = { ...DEFAULTS.settings, ...store.settings };
       store.blocked = Array.isArray(store.blocked) ? store.blocked : [];
       store.bookings = Array.isArray(store.bookings) ? store.bookings : [];
+      store.dayOpen = (store.dayOpen && typeof store.dayOpen === 'object' && !Array.isArray(store.dayOpen)) ? store.dayOpen : {};
     }
   } catch (e) {
     console.error('加载数据失败，使用默认值:', e.message);

@@ -101,6 +101,7 @@ body {
 .lg-available { color: #1d7a3d; } .lg-available::before { background: var(--green); }
 .lg-booked { color: #c5231b; } .lg-booked::before { background: var(--red); }
 .lg-blocked { color: var(--text-faint); } .lg-blocked::before { background: var(--text-faint); }
+.hero-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* ============ 日期选择 ============ */
 .date-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
@@ -157,6 +158,10 @@ body {
 .slot-past { opacity: 0.45; cursor: not-allowed; background: var(--panel-2); }
 .slot-past .st { color: var(--text-faint); }
 .slot-past:hover { transform: none; box-shadow: none; }
+
+.slot-closed { opacity: 0.6; cursor: not-allowed; background: var(--panel-2); }
+.slot-closed .st { color: var(--text-faint); }
+.slot-closed:hover { transform: none; box-shadow: none; }
 
 .slot-busy { border-color: rgba(255, 149, 0, 0.3); }
 .slot-busy .st { color: #b86b00; }
@@ -237,6 +242,24 @@ body {
   box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15);
 }
 .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px; }
+
+/* 每日开放时段 */
+.dayopen-tools { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.dayopen-tools .btn { padding: 6px 14px; font-size: 13px; }
+.dayopen-list {
+  max-height: 320px; overflow-y: auto; border: 1px solid var(--separator);
+  border-radius: 12px; padding: 6px; margin-bottom: 8px;
+}
+.dayopen-item {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+  border-radius: 9px; cursor: pointer; transition: background .15s;
+}
+.dayopen-item:hover { background: var(--bg-soft); }
+.dayopen-item input { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
+.do-time { font-size: 14px; font-weight: 500; color: var(--text); flex: 1; }
+.do-tag { font-style: normal; font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+.do-booked { background: rgba(255, 59, 48, 0.12); color: var(--red); }
+.do-blocked { background: rgba(142, 142, 147, 0.15); color: var(--text-faint); }
 
 /* 详情列表（iOS 分组样式） */
 .detail-row {
