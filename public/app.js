@@ -39,6 +39,16 @@ function closeModal() {
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
+// ---------- 我的预约（本地记录，用于醒目标识） ----------
+function getMyBookings() {
+  try { return JSON.parse(localStorage.getItem('myBookings') || '{}'); } catch { return {}; }
+}
+function setMyBooking(date, start) {
+  const m = getMyBookings();
+  m[`${date}|${start}`] = true;
+  try { localStorage.setItem('myBookings', JSON.stringify(m)); } catch {}
+}
+
 function buildDates(n) {
   const arr = [];
   const today = new Date();
@@ -96,12 +106,16 @@ function switchMode(mode) {
 function renderDates(containerId, selected, onChange) {
   const row = document.getElementById(containerId);
   row.innerHTML = '';
+  // 仅在用户端日期行显示"我的预约"标记点
+  const mine = containerId === 'dateRow' ? getMyBookings() : {};
+  const hasMine = (dateVal) => Object.keys(mine).some(k => k.startsWith(dateVal + '|'));
   state.dates.forEach(d => {
     const chip = document.createElement('div');
     chip.className = 'date-chip' + (d.value === selected ? ' active' : '');
+    const dot = hasMine(d.value) ? '<span class="chip-dot" title="有我的预约"></span>' : '';
     chip.innerHTML = `
       <div class="wd">${d.weekday}</div>
-      <div class="md">${d.md}</div>
+      <div class="md">${d.md}${dot}</div>
       <div class="today">${d.isToday ? '今天' : ''}</div>`;
     chip.addEventListener('click', () => {
       state.selectedDate = d.value;
@@ -135,11 +149,14 @@ function renderUserSlots() {
     grid.innerHTML = '<div class="empty">当天没有可预约时段</div>';
     return;
   }
+  const mine = getMyBookings();
   state.userSlots.forEach(s => {
+    const isMine = s.status === 'booked' && mine[`${state.selectedDate}|${s.start}`];
     const el = document.createElement('div');
-    el.className = `slot slot-${s.status}`;
+    el.className = `slot slot-${s.status}` + (isMine ? ' slot-mine' : '');
     let label = '可预约';
-    if (s.status === 'booked') label = '已约满';
+    if (isMine) label = '⭐ 我的预约';
+    else if (s.status === 'booked') label = '已约满';
     else if (s.status === 'blocked') label = '不可约';
     else if (s.status === 'past') label = '已过时';
     el.innerHTML = `<div class="time">${s.start}–${s.end}</div><div class="st">${label}</div>`;
@@ -199,8 +216,10 @@ function openBookingModal(slot) {
     btn.disabled = true; btn.textContent = '提交中…';
     try {
       await api('/api/bookings', { method: 'POST', body: JSON.stringify(body) });
+      setMyBooking(body.date, body.start);
       closeModal();
       toast('预约成功！期待一起开黑 🎮', 'ok');
+      renderDates('dateRow', state.selectedDate, () => loadUserSlots());
       await loadUserSlots();
     } catch (err) {
       toast(err.message, 'err');

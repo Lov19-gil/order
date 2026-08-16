@@ -121,6 +121,11 @@ body {
 .date-chip .md { font-size: 17px; font-weight: 600; margin-top: 2px; letter-spacing: -0.02em; }
 .date-chip .today { font-size: 10px; color: var(--primary); margin-top: 2px; font-weight: 600; }
 .date-chip.active .today { color: rgba(255, 255, 255, 0.85); }
+.chip-dot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--primary); margin-left: 5px; vertical-align: 2px;
+}
+.date-chip.active .chip-dot { background: #fff; }
 
 /* ============ 时间段网格 ============ */
 .slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(138px, 1fr)); gap: 12px; }
@@ -156,6 +161,20 @@ body {
 .slot-busy { border-color: rgba(255, 149, 0, 0.3); }
 .slot-busy .st { color: #b86b00; }
 .slot-busy:hover { border-color: var(--amber); }
+
+/* 我的预约：醒目标识 */
+.slot-mine {
+  border: 2px solid var(--primary);
+  background: var(--primary-soft);
+  animation: minePulse 1.8s ease-in-out infinite;
+}
+.slot-mine .time { color: var(--primary); }
+.slot-mine .st { color: var(--primary); font-weight: 600; }
+.slot-mine:hover { border-color: var(--primary); transform: translateY(-2px); }
+@keyframes minePulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.14); }
+  50% { box-shadow: 0 0 0 8px rgba(0, 113, 227, 0.07); }
+}
 
 /* ============ 按钮 ============ */
 .btn {

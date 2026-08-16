@@ -37,6 +37,16 @@ function slotKey(date, start) {
   return date + '|' + start;
 }
 
+// 中国时区 (UTC+8) 辅助，避免服务器时区与用户不一致导致时间判断错乱
+const CN_OFFSET_MS = 8 * 60 * 60 * 1000;
+
+// 把 "YYYY-MM-DD" + "HH:MM" 解析为中国时间对应的真实 UTC 时间戳
+function chinaTimestamp(date, hhmm) {
+  const [y, m, d] = date.split('-').map(Number);
+  const [hh, mm] = hhmm.split(':').map(Number);
+  return Date.UTC(y, m - 1, d, hh, mm) - CN_OFFSET_MS;
+}
+
 // ---------------- 公共接口 ----------------
 
 // 公开设置 (不含敏感信息)
@@ -62,15 +72,14 @@ app.get('/api/slots', (req, res) => {
   for (const b of store.bookings) {
     bookingMap[slotKey(b.date, b.start)] = b;
   }
-  const today = new Date().toISOString().slice(0, 10);
-  const nowHHMM = pad(new Date().getHours()) + ':' + pad(new Date().getMinutes());
+  const nowTs = Date.now();
   const result = slots.map(s => {
     const k = slotKey(date, s.start);
     let status = 'available';
     if (blockedSet.has(k)) status = 'blocked';
     else if (bookingMap[k]) status = 'booked';
-    // 当天已过去的时段
-    if (date === today && s.start <= nowHHMM && status === 'available') {
+    // 已过去的时间段（按中国时间判断）
+    if (status === 'available' && chinaTimestamp(date, s.start) < nowTs) {
       status = 'past';
     }
     return { start: s.start, end: s.end, status, booking: bookingMap[k] || null };
@@ -96,9 +105,8 @@ app.post('/api/bookings', (req, res) => {
   if (store.bookings.some(b => slotKey(b.date, b.start) === k)) {
     return res.status(409).json({ error: '该时间段已被预约，请选择其他时间' });
   }
-  // 禁止预约过去的时间
-  const slotDateTime = new Date(`${date}T${start}:00`);
-  if (isNaN(slotDateTime.getTime()) || slotDateTime < new Date()) {
+  // 禁止预约过去的时间（按中国时间判断，避免服务器时区偏差）
+  if (chinaTimestamp(date, start) < Date.now()) {
     return res.status(400).json({ error: '不能预约过去的时间段' });
   }
 
