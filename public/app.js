@@ -41,8 +41,12 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-// 基于后端返回的中国今天，生成未来 n 天
+// 基于后端返回的中国今天，生成未来 n 天（today 缺失时回退浏览器本地日期）
 function buildDates(todayStr, n) {
+  if (!todayStr || !/^\d{4}-\d{2}-\d{2}$/.test(todayStr)) {
+    const d = new Date();
+    todayStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
   const [y, m, d] = todayStr.split('-').map(Number);
   const base = Date.UTC(y, m - 1, d);
   const arr = [];
@@ -70,19 +74,19 @@ async function init() {
   bindEvents();
   try {
     state.settings = await api('/api/settings');
+    state.today = state.settings.today;
+    document.getElementById('brandTitle').textContent = state.settings.title || '游戏预约';
+    document.title = (state.settings.title || '游戏预约') + ' - 预约系统';
+    state.dates = buildDates(state.today, 14);
+    state.selectedDate = state.dates[0].value;
+    renderDateRow('dateRow');
+    renderDateRow('adminDateRow');
+    updateSlotTitles();
+    await loadUserSlots();
   } catch (e) {
-    toast('加载失败：' + e.message, 'err', 4000);
-    return;
+    console.error('初始化失败:', e);
+    toast('加载失败：' + (e && e.message ? e.message : e), 'err', 6000);
   }
-  state.today = state.settings.today;
-  document.getElementById('brandTitle').textContent = state.settings.title || '游戏预约';
-  document.title = (state.settings.title || '游戏预约') + ' - 预约系统';
-  state.dates = buildDates(state.today, 14);
-  state.selectedDate = state.dates[0].value;
-  renderDateRow('dateRow');
-  renderDateRow('adminDateRow');
-  updateSlotTitles();
-  await loadUserSlots();
 }
 
 function bindEvents() {
