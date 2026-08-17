@@ -63,7 +63,15 @@ function buildDates(todayStr, n) {
 }
 
 // 我的预约（用 booking id 本地记忆，用于醒目标识）
-function getMyBookings() { try { return JSON.parse(localStorage.getItem('myBookings') || '[]'); } catch { return []; } }
+// 兼容旧版对象格式 { "date|start": true }，统一返回数组
+function getMyBookings() {
+  try {
+    const v = JSON.parse(localStorage.getItem('myBookings') || '[]');
+    if (Array.isArray(v)) return v;
+    if (v && typeof v === 'object') return Object.keys(v);
+    return [];
+  } catch { return []; }
+}
 function addMyBooking(id) {
   const m = getMyBookings();
   if (!m.includes(id)) { m.push(id); try { localStorage.setItem('myBookings', JSON.stringify(m)); } catch {} }
